@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production E-Commerce | Ready-to-Ship Storefront</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; overflow-x: hidden; }
+        
+        /* Drawer & Modals */
+        .drawer-right { transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .drawer-right.open { transform: translateX(0); }
+        .modal-overlay { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; backdrop-filter: blur(4px); }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        
+        /* Glass & UI Elements */
+        .glass-nav { background: rgba(255, 255, 255, 0.90); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(226, 232, 240, 0.8); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Marketing Animations */
+        .toast-enter { animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .toast-exit { animation: slideOutDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideInUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideOutDown { from { transform: translateY(0); opacity: 1; } to { transform: translateY(100%); opacity: 0; } }
+        
+        .pulse-btn { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); animation: pulse-blue 2s infinite; }
+        @keyframes pulse-blue { 
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); } 
+            50% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); } 
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); } 
+        }
+
+        .shimmer-img {
+            background: #f6f7f8;
+            background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+            background-repeat: no-repeat;
+            background-size: 800px 100%; 
+            animation-duration: 1.5s;
+            animation-fill-mode: forwards; 
+            animation-iteration-count: infinite;
+            animation-name: placeholderShimmer;
+            animation-timing-function: linear;
+        }
+        @keyframes placeholderShimmer { 0% { background-position: -468px 0; } 100% { background-position: 468px 0; } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen">
+
+    
+    <!-- Notification System -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Exit Intent Marketing Modal -->
+    <div id="exit-modal" class="fixed inset-0 bg-slate-900/60 z-[90] modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden relative text-center transform scale-95 transition-transform duration-300" id="exit-modal-content">
+            <button onclick="closeModal('exit-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-900 text-2xl z-10">&times;</button>
+            <div class="bg-blue-600 p-8 text-white">
+                <span class="text-4xl mb-2 block">🎁</span>
+                <h3 class="text-3xl font-black uppercase tracking-tighter mb-2">Wait! Don't Leave.</h3>
+                <p class="text-blue-100 text-sm">Unlock 15% off your first clinical order.</p>
+            </div>
+            <div class="p-8 space-y-4">
+                <input type="email" id="capture-email" placeholder="Enter your email address" class="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-blue-500 focus:outline-none text-center">
+                <button onclick="applyMarketingDiscount()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition-all uppercase tracking-widest shadow-lg pulse-btn text-xs">
+                    Reveal My 15% Code
+                </button>
+                <p class="text-[10px] text-slate-400">By claiming, you agree to our Terms. Unsubscribe anytime.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- External Checkout Simulation Modal -->
+    <div id="checkout-modal" class="fixed inset-0 bg-slate-900/80 z-[100] modal-overlay flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-8 text-center relative overflow-hidden">
+            <div class="absolute inset-0 bg-blue-600/5 shimmer-img" id="checkout-shimmer"></div>
+            <div class="relative z-10 space-y-6">
+                <div class="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto animate-spin" id="checkout-spinner"></div>
+                <div id="checkout-success-icon" class="hidden text-6xl text-green-500">✓</div>
+                
+                <div id="checkout-status">
+                    <h3 class="text-lg font-black text-slate-900 uppercase tracking-tight">Initializing Gateway</h3>
+                    <p class="text-xs text-slate-500 mt-2">Connecting to Secure Stripe Terminal...</p>
+                </div>
+                
+                <div class="text-[10px] bg-slate-50 p-3 rounded-lg border border-slate-200 text-left text-slate-600 font-mono mt-4">
+                    <span class="block font-bold text-slate-900 mb-1">Developer Note:</span>
+                    This is where you trigger <code class="text-blue-600">stripe.redirectToCheckout()</code> or pass the JSON cart object to your backend API.
+                </div>
+                <button onclick="closeModal('checkout-modal')" id="checkout-close-btn" class="hidden w-full bg-slate-900 text-white font-bold py-3 rounded-lg text-xs uppercase tracking-wider hover:bg-slate-800">Return to Store</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cart-overlay" onclick="toggleCart()" class="fixed inset-0 bg-slate-900/40 z-[60] modal-overlay"></div>
+    <aside id="cart-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white z-[70] shadow-2xl drawer-right flex flex-col border-l border-slate-200">
+        <!-- Cart Header -->
+        <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+            <div class="flex items-center space-x-2">
+                <h2 class="text-lg font-black text-slate-900 tracking-tight uppercase">Your Cart</h2>
+                <span id="cart-drawer-count" class="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">0 items</span>
+            </div>
+            <button onclick="toggleCart()" class="text-slate-400 hover:text-slate-900 transition-colors p-1 bg-slate-50 rounded-md">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <!-- Cart Items -->
+        <div id="cart-content" class="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50 hide-scrollbar">
+            <!-- Items injected via JS -->
+        </div>
+
+        <!-- Cross-sell Module (Dynamic) -->
+        <div id="cart-cross-sell" class="px-5 pb-4 bg-slate-50 hidden">
+             <!-- Injected via JS -->
+        </div>
+
+        <!-- Cart Footer / Checkout -->
+        <div class="p-5 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-10">
+            
+            <div id="discount-banner" class="hidden mb-3 bg-green-50 text-green-700 text-[10px] p-2 rounded-lg border border-green-100 flex justify-between items-center font-bold uppercase tracking-wider">
+                <span>15% Marketing Discount Applied</span>
+                <span>✓</span>
+            </div>
+
+            <div class="space-y-2 mb-4">
+                <div class="flex justify-between text-sm text-slate-500">
+                    <span>Subtotal</span>
+                    <span id="cart-subtotal">$0.00</span>
+                </div>
+                <div class="flex justify-between text-sm text-green-600 font-medium">
+                    <span>Shipping (Standard AU)</span>
+                    <span>Free</span>
+                </div>
+                <div class="flex justify-between text-[10px] text-slate-400 border-b border-slate-100 pb-2">
+                    <span>Includes 10% GST</span>
+                    <span id="cart-gst">$0.00</span>
+                </div>
+                <div class="flex justify-between text-xl font-black text-slate-900 pt-1">
+                    <span>Total AUD</span>
+                    <span id="cart-total">$0.00</span>
+                </div>
+            </div>
+
+            <!-- ACCC Compliance Checkbox -->
+            <div class="flex items-start space-x-3 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-sm cursor-pointer" onclick="document.getElementById('acl-consent').click();">
+                <input type="checkbox" id="acl-consent" class="mt-0.5 accent-blue-600 w-4 h-4 rounded border-slate-300 cursor-pointer" onclick="event.stopPropagation()">
+                <label class="text-[10px] text-slate-600 leading-tight select-none cursor-pointer">
+                    I accept the Terms and acknowledge my right to a refund/replacement for major faults under the <strong>Australian Consumer Law (ACL)</strong>.
+                </label>
+            </div>
+
+            <button onclick="executeCheckout()" id="checkout-btn" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/20 active:scale-[0.98] uppercase tracking-widest text-xs flex justify-center items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                <span>Secure Checkout</span>
+            </button>
+        </div>
+    </aside>
+
+    
+    <!-- Top Bar (Compliance & Promos) -->
+    <div class="bg-slate-900 text-slate-300 text-[10px] text-center py-2 uppercase tracking-widest font-bold px-4 relative z-50">
+        Free Express Shipping on Orders Over $150 | TGA Compliant Formulations
+    </div>
+
+    <!-- Main Navigation -->
+    <nav class="sticky top-0 w-full z-40 glass-nav transition-all duration-300" id="main-nav">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- Logo -->
+                <div class="flex items-center space-x-2 cursor-pointer" onclick="window.scrollTo(0,0)">
+                    <div class="w-5 h-5 bg-gradient-to-br from-blue-500 to-blue-700 rounded-md shadow-sm"></div>
+                    <span class="font-extrabold text-xl tracking-tighter uppercase text-slate-900">Aura<span class="text-blue-600">Labs</span></span>
+                </div>
+                
+                <!-- Desktop Links -->
+                <div class="hidden md:flex space-x-8 text-xs font-bold uppercase tracking-widest text-slate-500">
+                    <a href="#catalog" class="hover:text-blue-600 transition-colors">Catalog</a>
+                    <a href="#science" class="hover:text-blue-600 transition-colors">The Science</a>
+                    <a href="#reviews" class="hover:text-blue-600 transition-colors">Clinical Reviews</a>
+                </div>
+
+                <!-- Utilities -->
+                <div class="flex items-center space-x-4">
+                    <button class="text-slate-400 hover:text-slate-900 hidden sm:block">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </button>
+                    <button onclick="toggleCart()" class="relative p-2 hover:bg-slate-100 rounded-lg transition-colors flex items-center bg-slate-50 border border-slate-200">
+                        <svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                        <span id="nav-cart-badge" class="absolute -top-2 -right-2 bg-blue-600 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full font-bold shadow-sm border-2 border-white">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    
+    <main class="flex-grow">
+        <!-- Hero Section -->
+        <section class="relative bg-white overflow-hidden border-b border-slate-200">
+            <!-- Background Graphic (CSS Generated) -->
+            <div class="absolute inset-0 z-0">
+                <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-50 rounded-full blur-3xl opacity-60 translate-x-1/3 -translate-y-1/3"></div>
+                <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-slate-100 rounded-full blur-3xl opacity-50 -translate-x-1/3 translate-y-1/3"></div>
+            </div>
+
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 relative z-10 flex flex-col lg:flex-row items-center gap-12">
+                <div class="flex-1 space-y-8 text-center lg:text-left">
+                    <div class="inline-flex items-center space-x-2 bg-blue-50 border border-blue-100 text-blue-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                        <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                        <span>Next-Gen Peptide Delivery</span>
+                    </div>
+                    <h1 class="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-[1.1]">
+                        Clinical Grade <br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Bio-Optimization.</span>
+                    </h1>
+                    <p class="text-lg text-slate-500 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                        Ready-to-ship e-commerce template featuring structured catalogs, local persistent state, and simulated API checkouts. Designed for rapid deployment.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                        <button onclick="document.getElementById('catalog').scrollIntoView()" class="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95">
+                            Shop Catalog
+                        </button>
+                        <button class="bg-white border border-slate-200 text-slate-700 px-8 py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-slate-50 transition-all">
+                            View Science
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Hero Visual (Dynamic Placeholder representing high-quality asset) -->
+                <div class="flex-1 w-full max-w-lg mx-auto relative group">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-blue-200 to-transparent rounded-[2rem] transform rotate-3 scale-105 transition-transform group-hover:rotate-6"></div>
+                    <img src="https://placehold.co/800x800/1e293b/ffffff?text=Product+Hero+Asset" alt="Hero Product" class="relative rounded-[2rem] shadow-2xl object-cover w-full aspect-square border-4 border-white transition-transform duration-500 group-hover:-translate-y-2">
+                    
+                    <!-- Floating Badge -->
+                    <div class="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-xl border border-slate-100 flex items-center gap-3 animate-[bounce_3s_infinite]">
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">✓</div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-900 uppercase">HPLC Verified</p>
+                            <p class="text-[10px] text-slate-500">&gt;99% Purity standard</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trust Bar -->
+        <div class="bg-slate-900 text-white border-b border-slate-800">
+            <div class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-x divide-slate-800">
+                <div><div class="text-2xl mb-2">🚚</div><div class="text-[10px] font-bold uppercase tracking-widest">Free Express Shipping</div></div>
+                <div><div class="text-2xl mb-2">🛡️</div><div class="text-[10px] font-bold uppercase tracking-widest">Secure Payments</div></div>
+                <div><div class="text-2xl mb-2">🔬</div><div class="text-[10px] font-bold uppercase tracking-widest">Lab Tested</div></div>
+                <div><div class="text-2xl mb-2">🇦🇺</div><div class="text-[10px] font-bold uppercase tracking-widest">Australian Owned</div></div>
+            </div>
+        </div>
+
+        
+        <section id="catalog" class="py-24 bg-slate-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                
+                <!-- Catalog Header & Filters -->
+                <div class="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+                    <div class="space-y-3">
+                        <h2 class="text-3xl font-black text-slate-900 uppercase tracking-tighter">Product Catalog</h2>
+                        <p class="text-sm text-slate-500 max-w-md">Data-driven assortment rendering from a structured JSON object. Ready to be replaced with a live API fetch.</p>
+                    </div>
+                    
+                    <!-- Dynamic Filter Controls -->
+                    <div class="flex bg-slate-200 p-1.5 rounded-xl text-xs font-bold uppercase tracking-wider overflow-x-auto hide-scrollbar">
+                        <button onclick="CatalogManager.filter('all')" id="filter-all" class="filter-btn bg-white shadow-sm px-6 py-2.5 rounded-lg text-slate-900 transition-all">All</button>
+                        <button onclick="CatalogManager.filter('systemic')" id="filter-systemic" class="filter-btn px-6 py-2.5 rounded-lg text-slate-500 hover:text-slate-900 transition-all">Systemic</button>
+                        <button onclick="CatalogManager.filter('topical')" id="filter-topical" class="filter-btn px-6 py-2.5 rounded-lg text-slate-500 hover:text-slate-900 transition-all">Topical</button>
+                    </div>
+                </div>
+
+                <!-- Product Grid Area -->
+                <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Products rendered via JS -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t border-slate-200 pt-20 pb-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div class="col-span-1 md:col-span-2 space-y-6">
+                    <div class="font-extrabold text-2xl tracking-tighter uppercase text-slate-900">Aura<span class="text-blue-600">Labs</span></div>
+                    <p class="text-xs text-slate-500 leading-relaxed max-w-sm">
+                        This is a production-ready frontend template demonstrating modern e-commerce capabilities, state management, and strict ACCC compliant pricing structures.
+                    </p>
+                    <div class="flex space-x-4">
+                        <!-- Social Placeholders -->
+                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer">In</div>
+                        <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer">Tw</div>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-900 uppercase text-xs tracking-widest mb-6">Shop</h4>
+                    <ul class="space-y-4 text-xs text-slate-500">
+                        <li><a href="#" class="hover:text-blue-600 transition-colors">All Products</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition-colors">Transdermal Patches</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition-colors">Topical Serums</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition-colors">Research Kits</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-900 uppercase text-xs tracking-widest mb-6">Legal (ACCC)</h4>
+                    <ul class="space-y-4 text-xs text-slate-500">
+                        <li><a href="#" class="hover:text-blue-600 transition-colors">Terms of Service</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition-colors">Refund Policy (ACL)</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-blue-600 transition-colors">TGA Disclaimer</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-slate-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                <p>&copy; 2024 AuraLabs E-Commerce Template. All rights reserved.</p>
+                <div class="flex space-x-4">
+                    <span>ABN: 12 345 678 901</span>
+                    <span>Melbourne, Victoria, AU</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * STOREFRONT ARCHITECTURE
+         * 1. Data Model (Structured JSON)
+         * 2. State Management (Cart & LocalStorage)
+         * 3. UI Controllers (Rendering, Modals, Toasts)
+         * 4. Checkout Simulation (External API mock)
+         */
+
+        // 1. DATA MODEL (Catalog)
+        const PRODUCT_DATABASE = [
+            { 
+                id: 'prod_SYS001', 
+                name: 'Systemic Repair Patch', 
+                category: 'systemic', 
+                price: 145.00, 
+                metric: '30 Units', 
+                tag: 'Bestseller',
+                description: '24-hour sustained release transdermal delivery matrix.', 
+                imageUrl: 'https://placehold.co/600x600/2563eb/ffffff?text=Patch+System',
+                stock: 12
+            },
+            { 
+                id: 'prod_TOP001', 
+                name: 'Regenerative Serum', 
+                category: 'topical', 
+                price: 92.50, 
+                metric: '50ml', 
+                tag: null,
+                description: 'High-viscosity topical formulation for localized remodeling.', 
+                imageUrl: 'https://placehold.co/600x600/1e293b/ffffff?text=Topical+Serum',
+                stock: 'In Stock'
+            },
+            { 
+                id: 'prod_RAW001', 
+                name: 'Research Isolate Kit', 
+                category: 'systemic', 
+                price: 299.00, 
+                metric: '1000mg', 
+                tag: 'Pro',
+                description: 'Lyophilized raw peptide isolate with sterile diluent.', 
+                imageUrl: 'https://placehold.co/600x600/cbd5e1/1e293b?text=Isolate+Kit',
+                stock: 4
+            },
+            { 
+                id: 'prod_TOP002', 
+                name: 'Barrier Repair Balm', 
+                category: 'topical', 
+                price: 54.00, 
+                metric: '30ml', 
+                tag: null,
+                description: 'Moisture-locking balm to restore TEWL thresholds.', 
+                imageUrl: 'https://placehold.co/600x600/94a3b8/ffffff?text=Repair+Balm',
+                stock: 22
+            }
+        ];
+
+        // 2. STATE MANAGEMENT (Cart & Marketing)
+        const State = {
+            cart: JSON.parse(localStorage.getItem('aura_cart')) || [],
+            discountApplied: localStorage.getItem('aura_discount') === 'true',
+            exitTriggered: sessionStorage.getItem('aura_exit') === 'true',
+            
+            saveCart() {
+                localStorage.setItem('aura_cart', JSON.stringify(this.cart));
+                CartUI.update();
+            },
+            
+            addItem(id) {
+                const product = PRODUCT_DATABASE.find(p => p.id === id);
+                if (!product) return;
+                
+                const existing = this.cart.find(item => item.id === id);
+                if (existing) {
+                    existing.quantity += 1;
+                } else {
+                    this.cart.push({ ...product, quantity: 1 });
+                }
+                
+                this.saveCart();
+                UIUtils.showToast(`Added ${product.name} to cart.`, 'success');
+                
+                // UX: Open cart briefly on add
+                if (!document.getElementById('cart-drawer').classList.contains('open')) {
+                    toggleCart();
+                }
+            },
+            
+            updateQuantity(id, delta) {
+                const item = this.cart.find(i => i.id === id);
+                if (item) {
+                    item.quantity += delta;
+                    if (item.quantity <= 0) {
+                        this.cart = this.cart.filter(i => i.id !== id);
+                    }
+                    this.saveCart();
+                }
+            },
+
+            clearCart() {
+                this.cart = [];
+                this.saveCart();
+            }
+        };
+
+        // 3. UI CONTROLLERS
+
+        const CatalogManager = {
+            currentFilter: 'all',
+            
+            render() {
+                const grid = document.getElementById('product-grid');
+                grid.innerHTML = '';
+                
+                const filtered = this.currentFilter === 'all' 
+                    ? PRODUCT_DATABASE 
+                    : PRODUCT_DATABASE.filter(p => p.category === this.currentFilter);
+
+                filtered.forEach(p => {
+                    // Visual logic for stock & tags
+                    const tagHTML = p.tag ? `<div class="absolute top-4 left-4 bg-blue-600 text-white text-[9px] font-bold px-2 py-1 rounded uppercase tracking-widest z-10 shadow-md">${p.tag}</div>` : '';
+                    const stockHTML = typeof p.stock === 'number' 
+                        ? `<span class="text-[10px] text-red-500 font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span> Only ${p.stock} left</span>`
+                        : `<span class="text-[10px] text-green-500 font-bold">In Stock</span>`;
+
+                    const card = document.createElement('div');
+                    card.className = "bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-2xl hover:shadow-blue-900/5 transition-all duration-300 group flex flex-col relative";
+                    card.innerHTML = `
+                        ${tagHTML}
+                        <div class="relative h-64 overflow-hidden bg-slate-100">
+                            <img src="${p.imageUrl}" alt="${p.name}" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500">
+                            
+                            <!-- Quick Add Overlay -->
+                            <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                <button onclick="State.addItem('${p.id}')" class="bg-white text-slate-900 px-6 py-3 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-colors transform translate-y-4 group-hover:translate-y-0 duration-300 shadow-xl">
+                                    Quick Add +
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-6 flex-1 flex flex-col">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h3 class="font-bold text-slate-900 text-sm tracking-tight">${p.name}</h3>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">${p.metric}</p>
+                                </div>
+                                <span class="text-blue-600 font-black text-lg">$${p.price.toFixed(2)}</span>
+                            </div>
+                            <p class="text-xs text-slate-500 leading-relaxed mb-4 flex-1">${p.description}</p>
+                            <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                                ${stockHTML}
+                                <button onclick="State.addItem('${p.id}')" class="text-[10px] font-bold text-slate-900 uppercase tracking-widest hover:text-blue-600 flex items-center gap-1 group/btn">
+                                    <span>Add</span>
+                                    <svg class="w-4 h-4 transform group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            },
+
+            filter(category) {
+                this.currentFilter = category;
+                // Update Button Styles
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
+                    btn.classList.add('text-slate-500');
+                });
+                const activeBtn = document.getElementById(`filter-${category}`);
+                activeBtn.classList.remove('text-slate-500');
+                activeBtn.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
+                
+                this.render();
+            }
+        };
+
+        const CartUI = {
+            update() {
+                const container = document.getElementById('cart-content');
+                const badge = document.getElementById('nav-cart-badge');
+                const drawerCount = document.getElementById('cart-drawer-count');
+                const crossSell = document.getElementById('cart-cross-sell');
+                
+                // Subtotals
+                const subEl = document.getElementById('cart-subtotal');
+                const gstEl = document.getElementById('cart-gst');
+                const totEl = document.getElementById('cart-total');
+
+                const totalItems = State.cart.reduce((sum, item) => sum + item.quantity, 0);
+                badge.innerText = totalItems;
+                drawerCount.innerText = `${totalItems} items`;
+
+                if (State.cart.length === 0) {
+                    container.innerHTML = `
+                        <div class="h-full flex flex-col items-center justify-center text-slate-400 space-y-4 py-12">
+                            <svg class="w-16 h-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                            <p class="text-[10px] font-bold uppercase tracking-widest">Your cart is empty</p>
+                            <button onclick="toggleCart(); document.getElementById('catalog').scrollIntoView();" class="mt-4 border border-slate-300 text-slate-600 px-6 py-2 rounded-lg text-xs font-bold hover:bg-slate-100 transition-colors">Start Shopping</button>
+                        </div>
+                    `;
+                    subEl.innerText = '$0.00'; gstEl.innerText = '$0.00'; totEl.innerText = '$0.00';
+                    crossSell.classList.add('hidden');
+                    return;
+                }
+
+                container.innerHTML = State.cart.map(item => `
+                    <div class="flex items-center space-x-4 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                        <img src="${item.imageUrl}" class="w-16 h-16 rounded-lg object-cover bg-slate-100">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="text-xs font-bold text-slate-900 uppercase truncate">${item.name}</h4>
+                            <div class="text-[10px] text-slate-500 mb-2">${item.metric}</div>
+                            <div class="flex items-center space-x-2 bg-slate-50 w-max rounded-md border border-slate-200">
+                                <button onclick="State.updateQuantity('${item.id}', -1)" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-blue-600">-</button>
+                                <span class="text-xs font-bold w-4 text-center">${item.quantity}</span>
+                                <button onclick="State.updateQuantity('${item.id}', 1)" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-blue-600">+</button>
+                            </div>
+                        </div>
+                        <div class="text-right flex flex-col justify-between h-full">
+                            <div class="text-sm font-black text-slate-900">$${(item.price * item.quantity).toFixed(2)}</div>
+                            <button onclick="State.updateQuantity('${item.id}', -${item.quantity})" class="text-[9px] text-slate-400 hover:text-red-500 uppercase font-bold underline">Remove</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Intelligent Cross-Selling Logic
+                // If they have systemic patch, suggest topical balm
+                const hasPatch = State.cart.some(i => i.id === 'prod_SYS001');
+                const hasBalm = State.cart.some(i => i.id === 'prod_TOP002');
+                
+                if (hasPatch && !hasBalm) {
+                    const balm = PRODUCT_DATABASE.find(p => p.id === 'prod_TOP002');
+                    crossSell.innerHTML = `
+                        <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 relative mt-2">
+                            <span class="absolute -top-2 -right-2 bg-blue-600 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm">Recommended</span>
+                            <p class="text-[10px] font-bold text-blue-900 uppercase tracking-widest mb-3">Frequently Bought Together</p>
+                            <div class="flex items-center space-x-3">
+                                <img src="${balm.imageUrl}" class="w-12 h-12 rounded-lg object-cover">
+                                <div class="flex-1">
+                                    <p class="text-xs font-bold text-slate-900">${balm.name}</p>
+                                    <p class="text-[9px] text-slate-500 leading-tight">Enhance systemic recovery topically.</p>
+                                </div>
+                                <button onclick="State.addItem('${balm.id}')" class="bg-white border border-blue-200 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors shadow-sm">+$${balm.price}</button>
+                            </div>
+                        </div>
+                    `;
+                    crossSell.classList.remove('hidden');
+                } else {
+                    crossSell.classList.add('hidden');
+                }
+
+                // Financial Calculation (ACCC Compliant - Anti-Drip Pricing)
+                let subtotal = State.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                
+                // Apply Marketing Discount if claimed
+                if (State.discountApplied) {
+                    subtotal = subtotal * 0.85;
+                    document.getElementById('discount-banner').classList.remove('hidden');
+                }
+
+                // Prices display as inclusive. GST is 1/11th of total in AU.
+                const total = subtotal; 
+                const gst = total - (total / 1.10); 
+
+                subEl.innerText = `$${subtotal.toFixed(2)}`;
+                gstEl.innerText = `$${gst.toFixed(2)}`;
+                totEl.innerText = `$${total.toFixed(2)}`;
+            }
+        };
+
+        // UI UTILS & MODALS
+        function toggleCart() {
+            const drawer = document.getElementById('cart-drawer');
+            const overlay = document.getElementById('cart-overlay');
+            const isOpen = drawer.classList.contains('open');
+            
+            if (isOpen) {
+                drawer.classList.remove('open');
+                overlay.classList.remove('open');
+            } else {
+                drawer.classList.add('open');
+                overlay.classList.add('open');
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('open');
+        }
+
+        const UIUtils = {
+            showToast(message, type = 'success') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                const icon = type === 'success' ? '✓' : 'ℹ️';
+                const color = type === 'success' ? 'text-green-600 bg-white border-green-100' : 'text-blue-600 bg-white border-blue-100';
+                
+                toast.className = `flex items-center space-x-3 p-4 rounded-xl shadow-xl border ${color} toast-enter w-max max-w-sm`;
+                toast.innerHTML = `
+                    <div class="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center font-bold text-sm border border-slate-100">${icon}</div>
+                    <p class="text-xs font-bold text-slate-800">${message}</p>
+                `;
+                
+                container.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.remove('toast-enter');
+                    toast.classList.add('toast-exit');
+                    setTimeout(() => toast.remove(), 400);
+                }, 4000);
+            }
+        };
+
+        // 4. CHECKOUT SIMULATION (Ready to tie into Stripe/Backend)
+        function executeCheckout() {
+            if (State.cart.length === 0) return;
+            
+            // Compliance Check
+            const consent = document.getElementById('acl-consent');
+            if (!consent.checked) {
+                UIUtils.showToast('Please accept the Consumer Guarantees to proceed.', 'error');
+                // Shake animation on checkbox container
+                consent.parentElement.animate([{transform: 'translateX(0)'}, {transform: 'translateX(-5px)'}, {transform: 'translateX(5px)'}, {transform: 'translateX(0)'}], {duration: 300});
+                return;
+            }
+
+            // Close cart, open checkout modal
+            toggleCart();
+            document.getElementById('checkout-modal').classList.add('open');
+            
+            // Simulate Stripe/Backend Connection Flow
+            const statusText = document.querySelector('#checkout-status h3');
+            const statusSub = document.querySelector('#checkout-status p');
+            const spinner = document.getElementById('checkout-spinner');
+            const successIcon = document.getElementById('checkout-success-icon');
+            const closeBtn = document.getElementById('checkout-close-btn');
+            const shimmer = document.getElementById('checkout-shimmer');
+
+            // Reset modal state
+            statusText.innerText = "Initializing Gateway";
+            statusSub.innerText = "Connecting to Secure Terminal...";
+            spinner.classList.remove('hidden');
+            successIcon.classList.add('hidden');
+            closeBtn.classList.add('hidden');
+            shimmer.style.display = 'block';
+
+            /**
+             * DEVELOPER INTEGRATION POINT:
+             * Replace the setTimeout logic below with your actual API call.
+             * Example (Stripe):
+             * 
+             * fetch('/create-checkout-session', {
+             *   method: 'POST',
+             *   headers: { 'Content-Type': 'application/json' },
+             *   body: JSON.stringify({ items: State.cart })
+             * }).then(res => res.json()).then(session => {
+             *   stripe.redirectToCheckout({ sessionId: session.id });
+             * });
+             */
+
+            setTimeout(() => {
+                statusText.innerText = "Encrypting Payload";
+                statusSub.innerText = "Securing transaction data...";
+                
+                setTimeout(() => {
+                    // Success Simulation
+                    spinner.classList.add('hidden');
+                    successIcon.classList.remove('hidden');
+                    shimmer.style.display = 'none';
+                    statusText.innerText = "Session Created!";
+                    statusText.classList.add('text-green-600');
+                    statusSub.innerText = "In a live environment, you would now be redirected to Stripe.";
+                    closeBtn.classList.remove('hidden');
+                    
+                    // Clear cart post-checkout simulation
+                    State.clearCart();
+                    
+                }, 2000);
+            }, 1500);
+        }
+
+        // MARKETING SYSTEMS (Exit Intent & Social Proof)
+        
+        function initMarketingSystems() {
+            // 1. Exit Intent tracking
+            document.addEventListener("mouseleave", (e) => {
+                if (e.clientY < 0 && !State.exitTriggered && !State.discountApplied) {
+                    document.getElementById('exit-modal').classList.add('open');
+                    sessionStorage.setItem('aura_exit', 'true');
+                    State.exitTriggered = true;
+                }
+            });
+
+            // 2. Simulated Live Sales (Social Proof)
+            const names = ['Sarah', 'James', 'Michael', 'Emma', 'David'];
+            const cities = ['Sydney, NSW', 'Melbourne, VIC', 'Brisbane, QLD', 'Perth, WA'];
+            
+            setInterval(() => {
+                // Don't show toast if modals/drawers are open
+                if (document.querySelector('.modal-overlay.open') || document.querySelector('.drawer-right.open')) return;
+                
+                const name = names[Math.floor(Math.random() * names.length)];
+                const city = cities[Math.floor(Math.random() * cities.length)];
+                const product = PRODUCT_DATABASE[Math.floor(Math.random() * PRODUCT_DATABASE.length)].name;
+                
+                UIUtils.showToast(`<span class="text-blue-600">${name}</span> from ${city} just purchased <br><span class="font-normal text-[10px]">${product}</span>`);
+            }, 25000); // Every 25 seconds
+        }
+
+        function applyMarketingDiscount() {
+            const email = document.getElementById('capture-email').value;
+            if(!email || !email.includes('@')) {
+                alert('Please enter a valid email.'); return;
+            }
+            
+            // Simulating saving email to Mailchimp/Hubspot
+            const btn = document.querySelector('#exit-modal button');
+            btn.innerHTML = '<span class="animate-pulse">Verifying...</span>';
+            
+            setTimeout(() => {
+                State.discountApplied = true;
+                localStorage.setItem('aura_discount', 'true');
+                CartUI.update();
+                closeModal('exit-modal');
+                UIUtils.showToast('15% Discount Applied to Cart!', 'success');
+            }, 1000);
+        }
+
+        // Initialize App
+        window.onload = () => {
+            CatalogManager.render();
+            CartUI.update();
+            setTimeout(initMarketingSystems, 5000); // Delay marketing hooks by 5s
+        };
+
+    </script>
+</body>
+</html>
