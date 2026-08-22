@@ -48,6 +48,25 @@
             animation-timing-function: linear;
         }
         @keyframes placeholderShimmer { 0% { background-position: -468px 0; } 100% { background-position: 468px 0; } }
+
+        /* Legal & Compliance Centre — additive extension */
+        .legal-tab { width: 100%; text-align: left; border: 1px solid transparent; transition: all 0.2s ease; }
+        .legal-tab:hover { background: #f8fafc; color: #0f172a; }
+        .legal-tab.active { background: #eff6ff; color: #1d4ed8; border-color: #dbeafe; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05); }
+        .legal-document { display: none; }
+        .legal-document.active { display: block; }
+        .legal-copy h2 { color: #0f172a; font-size: 1.75rem; line-height: 1.15; font-weight: 900; letter-spacing: -0.035em; margin-bottom: 0.5rem; }
+        .legal-copy h3 { color: #0f172a; font-size: 0.95rem; line-height: 1.4; font-weight: 800; margin-top: 1.75rem; margin-bottom: 0.6rem; }
+        .legal-copy p, .legal-copy li { color: #475569; font-size: 0.8rem; line-height: 1.75; }
+        .legal-copy p { margin-bottom: 0.85rem; }
+        .legal-copy ul, .legal-copy ol { margin: 0.35rem 0 1rem 1.15rem; }
+        .legal-copy ul { list-style: disc; }
+        .legal-copy ol { list-style: decimal; }
+        .legal-copy a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; }
+        .legal-copy strong { color: #1e293b; }
+        .legal-field { display: inline-block; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 0.35rem; padding: 0.05rem 0.35rem; font-weight: 800; font-size: 0.72rem; }
+        .legal-callout { border-left: 3px solid #2563eb; background: #eff6ff; border-radius: 0 0.75rem 0.75rem 0; padding: 1rem; margin: 1rem 0; }
+        .legal-warning { border: 1px solid #fde68a; background: #fffbeb; border-radius: 0.85rem; padding: 1rem; margin: 1rem 0; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 selection:bg-blue-200 selection:text-blue-900 flex flex-col min-h-screen">
@@ -55,6 +74,229 @@
     
     <!-- Notification System -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Legal & Compliance Centre (added without replacing the storefront) -->
+    <div id="legal-modal" class="fixed inset-0 bg-slate-950/70 z-[120] modal-overlay flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="legal-modal-title" aria-hidden="true" onclick="if (event.target === this) closeLegalCentre()">
+        <div class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-6xl h-[94vh] sm:h-[90vh] shadow-2xl overflow-hidden flex flex-col border border-white/20">
+            <header class="px-5 sm:px-7 py-4 sm:py-5 border-b border-slate-200 flex items-center justify-between bg-white">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-sm flex items-center justify-center text-white font-black text-xs">AL</div>
+                    <div>
+                        <p class="text-[9px] font-bold uppercase tracking-[0.22em] text-blue-600">AuraLabs</p>
+                        <h2 id="legal-modal-title" class="font-black text-lg sm:text-xl tracking-tight text-slate-900">Legal &amp; Compliance Centre</h2>
+                    </div>
+                </div>
+                <button type="button" onclick="closeLegalCentre()" class="w-9 h-9 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-900 hover:text-white transition-colors text-xl" aria-label="Close legal and compliance centre">&times;</button>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-[240px_1fr] flex-1 min-h-0">
+                <aside class="border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50 p-3 sm:p-4 overflow-x-auto md:overflow-y-auto">
+                    <nav class="flex md:flex-col gap-2 min-w-max md:min-w-0" aria-label="Legal documents">
+                        <button type="button" id="legal-tab-terms" class="legal-tab active rounded-xl px-4 py-3 text-xs font-bold text-slate-600" onclick="showLegalDocument('terms')">Terms of Service</button>
+                        <button type="button" id="legal-tab-refunds" class="legal-tab rounded-xl px-4 py-3 text-xs font-bold text-slate-600" onclick="showLegalDocument('refunds')">Refund Policy (ACL)</button>
+                        <button type="button" id="legal-tab-privacy" class="legal-tab rounded-xl px-4 py-3 text-xs font-bold text-slate-600" onclick="showLegalDocument('privacy')">Privacy Policy</button>
+                        <button type="button" id="legal-tab-tga" class="legal-tab rounded-xl px-4 py-3 text-xs font-bold text-slate-600" onclick="showLegalDocument('tga')">TGA Disclaimer</button>
+                    </nav>
+
+                    <div class="hidden md:block mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                        <p class="text-[9px] font-black uppercase tracking-widest text-amber-700 mb-2">Launch particulars required</p>
+                        <p class="text-[10px] leading-relaxed text-amber-800">Legal entity, verified ABN, addresses, contact email, change-of-mind settings, data processors and product regulatory status must be completed before public commerce.</p>
+                    </div>
+                </aside>
+
+                <section id="legal-scroll" class="overflow-y-auto bg-white p-5 sm:p-8 lg:p-10 legal-copy" tabindex="0">
+                    <div class="legal-warning">
+                        <p class="!text-amber-900 !text-xs !leading-relaxed !mb-0"><strong>Pre-launch configuration notice:</strong> Fields shown in amber brackets are deliberately unresolved. They must be replaced with verified business information. These documents do not, by themselves, establish that any peptide or therapeutic product may lawfully be supplied or advertised.</p>
+                    </div>
+
+                    <article id="legal-doc-terms" class="legal-document active" data-legal-title="Terms of Service">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-blue-600">Effective 21 August 2026</p>
+                        <h2>Terms of Service</h2>
+                        <p>These Terms govern access to the AuraLabs website and any order placed through it. AuraLabs is the trading name used by <span class="legal-field">INSERT LEGAL ENTITY NAME</span>, ABN <span class="legal-field">INSERT VERIFIED ABN</span> (referred to as “AuraLabs”, “we”, “us” or “our”).</p>
+
+                        <h3>1. Acceptance and eligibility</h3>
+                        <p>By using this website or submitting an order, you agree to these Terms, our Refund Policy, Privacy Policy and any product-specific conditions displayed before purchase. You must be at least 18 years old and legally capable of entering a binding contract. If you act for an organisation, you represent that you have authority to bind it.</p>
+
+                        <h3>2. Product information and lawful use</h3>
+                        <p>Product descriptions, permitted uses, storage requirements and regulatory status must be read together with the relevant product page, label and supplied documentation. A product described expressly as being for laboratory or research use must not be used for human or veterinary diagnosis, treatment or administration.</p>
+                        <div class="legal-callout"><p class="!mb-0">A “research use” label does not override Australian law or convert a therapeutic good into an unregulated product. AuraLabs must verify the legal classification, supply pathway and advertising status of every product before it is offered.</p></div>
+                        <p>You must not purchase, possess, store, resupply or use a product unlawfully. We may request reasonable information needed to verify eligibility, professional status or the intended lawful use of a restricted product.</p>
+
+                        <h3>3. Orders and contract formation</h3>
+                        <p>Placing an order is an offer to purchase. An automated acknowledgement confirms receipt only. We accept an order when we issue an acceptance or dispatch confirmation. We may reject or cancel an order before acceptance where a product is unavailable, information is incorrect, a pricing error is apparent, fraud is suspected, eligibility cannot be verified, or fulfilment may be unlawful. Any payment taken for a rejected order will be returned.</p>
+
+                        <h3>4. Prices, GST and payment</h3>
+                        <p>Unless stated otherwise, prices are in Australian dollars and include GST where GST applies. Mandatory charges must be disclosed before payment. Payment processing may be provided by an independent payment provider under its own terms and privacy practices. We do not promise that a displayed product remains available until an order is accepted.</p>
+
+                        <h3>5. Delivery, title and risk</h3>
+                        <p>Available delivery methods, charges and estimated timeframes will be displayed at checkout. Estimates are not guaranteed delivery dates. You must provide a complete and lawful delivery address and promptly correct errors. Title passes when full payment is received. Risk passes on delivery, subject always to rights that cannot be excluded under the Australian Consumer Law.</p>
+
+                        <h3>6. Australian Consumer Law</h3>
+                        <p>Our goods and services come with guarantees that cannot be excluded under the Australian Consumer Law. Nothing in these Terms excludes, restricts or modifies a consumer guarantee, remedy or other right where doing so would be unlawful. Our Refund Policy explains the process for requesting a repair, replacement, refund or other remedy.</p>
+
+                        <h3>7. Returns and product integrity</h3>
+                        <p>Returns are governed by the Refund Policy. Storage-sensitive, sterile, sealed or contamination-sensitive products may require integrity assessment. Those requirements do not remove any remedy available for a failure to comply with a consumer guarantee.</p>
+
+                        <h3>8. Website information and scientific content</h3>
+                        <p>General scientific material is provided for information and education. It is not medical advice, a diagnosis, a prescription or a substitute for advice from an appropriately qualified health professional. References to research do not establish safety, efficacy, regulatory approval or suitability for a particular person or purpose.</p>
+
+                        <h3>9. Intellectual property</h3>
+                        <p>Unless otherwise stated, AuraLabs or its licensors own the website design, text, graphics, databases and other content. You may access and print reasonable extracts for personal or internal research purposes. You must not reproduce, commercialise, scrape, republish or misrepresent our content without permission or another lawful basis.</p>
+
+                        <h3>10. Website availability and acceptable use</h3>
+                        <p>You must not interfere with the website, bypass security controls, introduce malicious code, misuse another person’s information, make fraudulent orders or use the service for unlawful conduct. We may suspend access reasonably necessary to protect users, systems or legal compliance.</p>
+
+                        <h3>11. Liability</h3>
+                        <p>Nothing in these Terms excludes liability or rights that cannot lawfully be excluded. To the maximum extent permitted by law, neither party is liable for indirect or consequential loss that was not reasonably foreseeable when the contract was formed. This limitation does not apply to fraud, wilful misconduct or any liability that Australian law does not permit us to limit.</p>
+
+                        <h3>12. Privacy</h3>
+                        <p>Our Privacy Policy explains how we handle personal information. Product eligibility, fraud prevention, payment and delivery processes may require identity and transaction information.</p>
+
+                        <h3>13. Changes to these Terms</h3>
+                        <p>We may update these Terms prospectively. The version shown when an order is accepted applies to that order unless the law requires otherwise. Material changes will be identified by a revised effective date.</p>
+
+                        <h3>14. Governing law and contact</h3>
+                        <p>These Terms are governed by the laws of Victoria, Australia, and the parties submit to courts with jurisdiction, subject to any non-excludable consumer right to bring proceedings elsewhere.</p>
+                        <p>Legal entity: <span class="legal-field">INSERT LEGAL ENTITY NAME</span><br>ABN: <span class="legal-field">INSERT VERIFIED ABN</span><br>Business address: <span class="legal-field">INSERT BUSINESS ADDRESS</span><br>Email: <span class="legal-field">INSERT LEGAL CONTACT EMAIL</span></p>
+                    </article>
+
+                    <article id="legal-doc-refunds" class="legal-document" data-legal-title="Refund Policy (ACL)">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-blue-600">Effective 21 August 2026</p>
+                        <h2>Refund Policy (Australian Consumer Law)</h2>
+                        <p>This policy explains the process used by AuraLabs for returns, repairs, replacements, refunds and related remedies. It operates in addition to rights under the Australian Consumer Law and does not exclude or reduce those rights.</p>
+
+                        <h3>1. Consumer guarantees</h3>
+                        <p>Products supplied to consumers must satisfy the consumer guarantees that apply, including acceptable quality, fitness for a disclosed purpose and correspondence with description or sample. Services must be provided with due care and skill and satisfy other applicable guarantees.</p>
+
+                        <h3>2. Major failures</h3>
+                        <p>If a product has a major failure, you may reject it and choose a refund or replacement of the same type, or keep it and seek compensation for the reduction in value. A failure may be major where, among other things, the product is unsafe, materially different from its description, substantially unfit for its normal or disclosed purpose and cannot easily be fixed within a reasonable time, or has a serious problem that would have stopped a reasonable consumer buying it.</p>
+
+                        <h3>3. Minor failures</h3>
+                        <p>If a failure is not major and can be remedied, we may choose to repair the product or otherwise remedy the failure within a reasonable time. If we cannot or do not do so within a reasonable time, further remedies may become available, including repair elsewhere at our reasonable cost, replacement or refund as permitted by law.</p>
+
+                        <h3>4. Other loss or damage</h3>
+                        <p>You may be entitled to compensation for reasonably foreseeable loss or damage caused by a failure to comply with a consumer guarantee. Nothing in this policy limits such an entitlement where it cannot lawfully be limited.</p>
+
+                        <h3>5. Change of mind</h3>
+                        <div class="legal-warning"><p class="!mb-0"><strong>Commercial decision required:</strong> select and publish the intended change-of-mind period and conditions. Until completed, AuraLabs must not represent that a voluntary change-of-mind return is available.</p></div>
+                        <p>Proposed setting: unopened, unused and saleable products may be considered for a discretionary change-of-mind return within <span class="legal-field">INSERT NUMBER OF DAYS OR STATE “NOT OFFERED”</span>. Any voluntary policy will not affect ACL rights. Integrity, sterility, temperature-control and contamination considerations may prevent resale, but cannot be used to refuse an ACL remedy for a faulty or misdescribed product.</p>
+
+                        <h3>6. How to request a remedy</h3>
+                        <ol>
+                            <li>Contact <span class="legal-field">INSERT RETURNS EMAIL</span> and provide your order number, contact details and a description of the problem.</li>
+                            <li>Provide reasonable proof of purchase. An original receipt is helpful but is not the only form of proof that may be accepted.</li>
+                            <li>Where reasonably required, provide photographs, batch details or other information needed to assess the issue.</li>
+                            <li>Do not return a product until return instructions are provided, particularly where safe transport, temperature control or contamination controls may apply.</li>
+                        </ol>
+
+                        <h3>7. Assessment and return costs</h3>
+                        <p>We may reasonably assess a product before providing a remedy. If a product is confirmed to have a failure covered by the consumer guarantees, AuraLabs will bear reasonable return or collection costs where required by law. We will not impose an arbitrary expiry period on statutory rights; the reasonable period depends on the nature, price and expected life of the product.</p>
+
+                        <h3>8. Refund method and timing</h3>
+                        <p>Approved refunds will ordinarily be made to the original payment method unless you agree otherwise. We will process an approved remedy within a reasonable time, allowing for payment-provider processing periods.</p>
+
+                        <h3>9. Exclusions that may apply</h3>
+                        <p>A consumer guarantee remedy may not apply where the consumer simply changed their mind, misused the product and caused the problem, was clearly informed of the relevant defect before purchase, or requested a service be performed in a particular way against advice. These exclusions do not permit us to refuse a remedy for an unrelated failure.</p>
+
+                        <h3>10. Contact</h3>
+                        <p>Returns address: <span class="legal-field">INSERT RETURNS ADDRESS OR AUTHORISATION PROCESS</span><br>Email: <span class="legal-field">INSERT RETURNS EMAIL</span><br>Response target: <span class="legal-field">INSERT BUSINESS RESPONSE TIME</span></p>
+                    </article>
+
+                    <article id="legal-doc-privacy" class="legal-document" data-legal-title="Privacy Policy">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-blue-600">Effective 21 August 2026</p>
+                        <h2>Privacy Policy</h2>
+                        <p>This policy describes how AuraLabs handles personal information. Where the Privacy Act 1988 (Cth) and Australian Privacy Principles apply, we will comply with them. Where an exemption applies, we intend to use the Australian Privacy Principles as a baseline for responsible information handling.</p>
+
+                        <h3>1. Who is responsible</h3>
+                        <p>The responsible entity is <span class="legal-field">INSERT LEGAL ENTITY NAME</span>, ABN <span class="legal-field">INSERT VERIFIED ABN</span>, trading as AuraLabs.</p>
+
+                        <h3>2. Information we may collect</h3>
+                        <ul>
+                            <li>identity and contact information, such as name, email, telephone number and delivery address;</li>
+                            <li>order, product, payment-status, delivery, refund and customer-service records;</li>
+                            <li>professional or eligibility information where reasonably required for lawful supply;</li>
+                            <li>marketing preferences and communications;</li>
+                            <li>device, browser, IP address, security, analytics, cookie and local-storage information; and</li>
+                            <li>other information you choose to provide.</li>
+                        </ul>
+                        <p>We should not request health information unless it is genuinely necessary and a lawful basis and handling process have been established.</p>
+
+                        <h3>3. How information is collected</h3>
+                        <p>Information may be collected when you browse the website, create or update a cart, request a discount, contact us, place or receive an order, request a remedy, respond to a survey or interact with an authorised service provider.</p>
+
+                        <h3>4. Purposes of collection and use</h3>
+                        <p>We may use information to operate the website, respond to enquiries, verify eligibility, process orders and payments, deliver products, prevent fraud, administer recalls and returns, keep records, improve services, comply with law and send marketing where consent or another lawful basis exists.</p>
+
+                        <h3>5. Cookies and browser storage</h3>
+                        <p>The storefront uses browser storage to retain cart contents, discount status and session preferences. Additional analytics, advertising or personalisation technologies must be listed here before being enabled: <span class="legal-field">INSERT ENABLED COOKIES, ANALYTICS AND ADVERTISING TOOLS</span>.</p>
+
+                        <h3>6. Payment information</h3>
+                        <p>Payment transactions may be handled by an independent payment provider. AuraLabs should not store complete payment-card numbers or security codes unless a separately validated, compliant payment environment is implemented. The selected payment provider must be identified before launch: <span class="legal-field">INSERT PAYMENT PROVIDER</span>.</p>
+
+                        <h3>7. Disclosure</h3>
+                        <p>We may disclose information where reasonably necessary to payment processors, hosting and cloud providers, delivery and fulfilment providers, communications platforms, professional advisers, fraud and security services, regulators, law-enforcement bodies and other persons authorised or required by law. The production provider register is: <span class="legal-field">INSERT VERIFIED PROVIDER LIST</span>.</p>
+
+                        <h3>8. Overseas handling</h3>
+                        <p>Some providers may store or process information outside Australia. Before launch, identify the likely countries or explain why they cannot practicably be specified: <span class="legal-field">INSERT COUNTRIES OR VERIFIED DISCLOSURE</span>.</p>
+
+                        <h3>9. Direct marketing</h3>
+                        <p>We will send electronic marketing only where permitted. Marketing messages will identify the sender and provide a functional unsubscribe method. You may withdraw marketing consent at any time. Transactional, safety, recall and order messages may still be sent where necessary.</p>
+
+                        <h3>10. Security and retention</h3>
+                        <p>We take reasonable administrative, technical and physical measures to protect personal information. No system is completely secure. Information will be retained only for as long as reasonably necessary for the stated purposes, legal obligations, dispute management and legitimate recordkeeping, then deleted or de-identified where appropriate.</p>
+
+                        <h3>11. Access and correction</h3>
+                        <p>You may request access to, or correction of, personal information we hold about you. We may need to verify identity. If access or correction is refused where the Privacy Act applies, we will provide the required reasons and complaint information.</p>
+
+                        <h3>12. Complaints</h3>
+                        <p>Send a privacy complaint to the contact below. We will acknowledge and investigate it within a reasonable time. If the Privacy Act applies and you are dissatisfied with our response, you may be able to complain to the Office of the Australian Information Commissioner.</p>
+
+                        <h3>13. Contact and updates</h3>
+                        <p>Privacy contact: <span class="legal-field">INSERT PRIVACY CONTACT</span><br>Email: <span class="legal-field">INSERT PRIVACY EMAIL</span><br>Postal address: <span class="legal-field">INSERT POSTAL ADDRESS</span></p>
+                        <p>We may update this policy when our practices or legal obligations change. The effective date identifies the current version.</p>
+                    </article>
+
+                    <article id="legal-doc-tga" class="legal-document" data-legal-title="TGA Disclaimer">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-blue-600">Effective 21 August 2026</p>
+                        <h2>Therapeutic Goods &amp; Research Information Notice</h2>
+                        <div class="legal-warning"><p class="!mb-0"><strong>Important:</strong> This notice is not a substitute for lawful product classification, ARTG status, supply authority or advertising compliance. A disclaimer cannot make prohibited advertising or unlawful supply permissible.</p></div>
+
+                        <h3>1. General information only</h3>
+                        <p>Scientific and educational content on this website is general information. It is not medical advice, diagnosis, treatment advice, prescribing advice or a recommendation that any person use a product. Seek advice from an appropriately qualified health professional about health decisions.</p>
+
+                        <h3>2. Product regulatory status</h3>
+                        <p>Before a product is displayed or offered, AuraLabs must determine whether it is a therapeutic good, medicine, medical device, cosmetic, food, chemical, laboratory material or another regulated product, and identify the lawful Australian supply and advertising pathway. The verified product-status register is: <span class="legal-field">INSERT PRODUCT-BY-PRODUCT CLASSIFICATION AND ARTG EVIDENCE</span>.</p>
+
+                        <h3>3. No TGA endorsement</h3>
+                        <p>No statement on this website should be understood as saying that AuraLabs, a product or a claim is endorsed by the Therapeutic Goods Administration or the Australian Government. Where a product is lawfully included in the Australian Register of Therapeutic Goods, any reference should use the verified ARTG, AUST L or AUST R number and wording permitted by law.</p>
+
+                        <h3>4. Public advertising restrictions</h3>
+                        <p>Prescription-only medicines, pharmacist-only medicines subject to restrictions, unapproved therapeutic goods and other prohibited categories must not be promoted to the general public except where a specific lawful pathway applies. Any professional-only material must use genuine access controls and must not be presented as public consumer advertising.</p>
+
+                        <h3>5. Research references</h3>
+                        <p>A reference to laboratory, preclinical or clinical research does not establish that a product is safe, effective, approved, suitable or lawfully available for a therapeutic purpose. Scientific and clinical representations must accurately reflect the body of evidence, identify material limitations and avoid creating unrealistic expectations.</p>
+
+                        <h3>6. Research-use products</h3>
+                        <p>Where a product is expressly and lawfully supplied only for laboratory or analytical research, it is not for human or veterinary administration, diagnosis or treatment. Labelling something “research use only” is not determinative if its presentation, claims, instructions or surrounding conduct promote therapeutic use or consumer administration.</p>
+
+                        <h3>7. Safety and professional advice</h3>
+                        <p>Do not delay or replace professional care because of website content. For urgent medical concerns call 000 or contact an appropriate emergency service. Product incidents, suspected adverse events and quality concerns should be reported through the applicable product and regulatory channels.</p>
+
+                        <h3>8. Compliance contact</h3>
+                        <p>Regulatory contact: <span class="legal-field">INSERT RESPONSIBLE PERSON</span><br>Email: <span class="legal-field">INSERT REGULATORY EMAIL</span><br>Product register last verified: <span class="legal-field">INSERT DATE</span></p>
+
+                        <h3>9. Official information</h3>
+                        <p>For current requirements consult the <a href="https://www.tga.gov.au/products/regulations-all-products/advertising" target="_blank" rel="noopener noreferrer">Therapeutic Goods Administration Advertising Hub</a>, the Therapeutic Goods Act 1989 and the applicable Therapeutic Goods Advertising Code.</p>
+                    </article>
+
+                    <div class="mt-10 pt-6 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <p class="!mb-0 !text-[10px] font-bold uppercase tracking-widest text-slate-400">Version 0.9 — particulars pending</p>
+                        <button type="button" onclick="closeLegalCentre()" class="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 transition-colors">Return to Store</button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
 
     <!-- Exit Intent Marketing Modal -->
     <div id="exit-modal" class="fixed inset-0 bg-slate-900/60 z-[90] modal-overlay flex items-center justify-center p-4">
@@ -70,7 +312,7 @@
                 <button onclick="applyMarketingDiscount()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition-all uppercase tracking-widest shadow-lg pulse-btn text-xs">
                     Reveal My 15% Code
                 </button>
-                <p class="text-[10px] text-slate-400">By claiming, you agree to our Terms. Unsubscribe anytime.</p>
+                <p class="text-[10px] text-slate-400">By claiming, you agree to our <button type="button" onclick="event.stopPropagation(); openLegalDocument('terms')" class="underline hover:text-blue-600">Terms</button> and acknowledge our <button type="button" onclick="event.stopPropagation(); openLegalDocument('privacy')" class="underline hover:text-blue-600">Privacy Policy</button>. Unsubscribe anytime.</p>
             </div>
         </div>
     </div>
@@ -151,7 +393,7 @@
             <div class="flex items-start space-x-3 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-sm cursor-pointer" onclick="document.getElementById('acl-consent').click();">
                 <input type="checkbox" id="acl-consent" class="mt-0.5 accent-blue-600 w-4 h-4 rounded border-slate-300 cursor-pointer" onclick="event.stopPropagation()">
                 <label class="text-[10px] text-slate-600 leading-tight select-none cursor-pointer">
-                    I accept the Terms and acknowledge my right to a refund/replacement for major faults under the <strong>Australian Consumer Law (ACL)</strong>.
+                    I accept the <button type="button" onclick="event.stopPropagation(); openLegalDocument('terms')" class="font-bold underline text-blue-600">Terms</button> and acknowledge my rights under the <button type="button" onclick="event.stopPropagation(); openLegalDocument('refunds')" class="font-bold underline text-blue-600">Refund Policy</button> and <strong>Australian Consumer Law (ACL)</strong>.
                 </label>
             </div>
 
@@ -311,12 +553,12 @@
                     </ul>
                 </div>
                 <div>
-                    <h4 class="font-bold text-slate-900 uppercase text-xs tracking-widest mb-6">Legal (ACCC)</h4>
+                    <h4 class="font-bold text-slate-900 uppercase text-xs tracking-widest mb-6">Legal &amp; Compliance</h4>
                     <ul class="space-y-4 text-xs text-slate-500">
-                        <li><a href="#" class="hover:text-blue-600 transition-colors">Terms of Service</a></li>
-                        <li><a href="#" class="hover:text-blue-600 transition-colors">Refund Policy (ACL)</a></li>
-                        <li><a href="#" class="hover:text-blue-600 transition-colors">Privacy Policy</a></li>
-                        <li><a href="#" class="hover:text-blue-600 transition-colors">TGA Disclaimer</a></li>
+                        <li><a href="#legal-terms" onclick="openLegalDocument('terms'); return false;" class="hover:text-blue-600 transition-colors">Terms of Service</a></li>
+                        <li><a href="#legal-refunds" onclick="openLegalDocument('refunds'); return false;" class="hover:text-blue-600 transition-colors">Refund Policy (ACL)</a></li>
+                        <li><a href="#legal-privacy" onclick="openLegalDocument('privacy'); return false;" class="hover:text-blue-600 transition-colors">Privacy Policy</a></li>
+                        <li><a href="#legal-tga" onclick="openLegalDocument('tga'); return false;" class="hover:text-blue-600 transition-colors">TGA Disclaimer</a></li>
                     </ul>
                 </div>
             </div>
@@ -324,7 +566,7 @@
             <div class="border-t border-slate-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                 <p>&copy; 2024 AuraLabs E-Commerce Template. All rights reserved.</p>
                 <div class="flex space-x-4">
-                    <span>ABN: 12 345 678 901</span>
+                    <span>ABN: [VERIFIED ABN REQUIRED]</span>
                     <span>Melbourne, Victoria, AU</span>
                 </div>
             </div>
@@ -618,6 +860,55 @@
         function closeModal(id) {
             document.getElementById(id).classList.remove('open');
         }
+
+        // LEGAL & COMPLIANCE CENTRE (additive controller)
+        const LEGAL_DOCUMENT_IDS = ['terms', 'refunds', 'privacy', 'tga'];
+        let legalPreviousFocus = null;
+
+        function showLegalDocument(documentId) {
+            const selectedId = LEGAL_DOCUMENT_IDS.includes(documentId) ? documentId : 'terms';
+
+            LEGAL_DOCUMENT_IDS.forEach((id) => {
+                const tab = document.getElementById(`legal-tab-${id}`);
+                const documentPanel = document.getElementById(`legal-doc-${id}`);
+                const isSelected = id === selectedId;
+
+                tab.classList.toggle('active', isSelected);
+                tab.setAttribute('aria-selected', String(isSelected));
+                documentPanel.classList.toggle('active', isSelected);
+                documentPanel.setAttribute('aria-hidden', String(!isSelected));
+            });
+
+            const scrollPanel = document.getElementById('legal-scroll');
+            scrollPanel.scrollTop = 0;
+            scrollPanel.focus({ preventScroll: true });
+        }
+
+        function openLegalDocument(documentId = 'terms') {
+            const modal = document.getElementById('legal-modal');
+            legalPreviousFocus = document.activeElement;
+            showLegalDocument(documentId);
+            modal.classList.add('open');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLegalCentre() {
+            const modal = document.getElementById('legal-modal');
+            modal.classList.remove('open');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+
+            if (legalPreviousFocus && typeof legalPreviousFocus.focus === 'function') {
+                legalPreviousFocus.focus();
+            }
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && document.getElementById('legal-modal').classList.contains('open')) {
+                closeLegalCentre();
+            }
+        });
 
         const UIUtils = {
             showToast(message, type = 'success') {
