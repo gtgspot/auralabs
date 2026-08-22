@@ -1,0 +1,76 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shipping and delivery — {{ENTITY_NAME}}</title>
+<link rel="stylesheet" href="../compliance/compliance-layer.css">
+<main class="lgl">
+<p class="lgl-eyebrow">Legal</p>
+<h1>Shipping and delivery</h1>
+<p class="lgl-meta">{{ENTITY_NAME}} · ABN {{ABN}} · Last updated {{LAST_UPDATED}}</p>
+
+<ul class="lgl-nav">
+  <li><a href="terms-of-sale.html">Terms of sale</a></li>
+  <li><a href="privacy-policy.html">Privacy</a></li>
+  <li><a href="returns-and-refunds.html">Returns</a></li>
+  <li><a href="shipping-and-delivery.html">Shipping</a></li>
+</ul>
+
+<div class="lgl-key">
+  <strong>Accuracy rule</strong>
+  Every number below is a representation. Under ACL ss 18 and 29(1)(m) it must be one you actually meet
+  most of the time. Quote the timeframe you hit, not the one you hope for — a dispatch window you miss
+  routinely is a misleading representation, not an optimistic one.
+</div>
+
+<h2>Where we ship</h2>
+<p>{{SHIPPING_DESTINATIONS}}</p>
+
+<h2>Dispatch</h2>
+<p>Orders placed before {{CUTOFF_TIME}} on a business day are dispatched {{DISPATCH_WINDOW}}. Orders
+placed after that, or on a weekend or public holiday, are dispatched the next business day.</p>
+
+<h2>Delivery timeframes and cost</h2>
+<table>
+  <tr><th>Destination</th><th>Estimated transit</th><th>Cost</th></tr>
+  <tr><td>Melbourne metro</td><td>{{TRANSIT_MELB}}</td><td>{{COST_MELB}}</td></tr>
+  <tr><td>Victoria regional</td><td>{{TRANSIT_VIC}}</td><td>{{COST_VIC}}</td></tr>
+  <tr><td>Interstate metro</td><td>{{TRANSIT_INTERSTATE}}</td><td>{{COST_INTERSTATE}}</td></tr>
+  <tr><td>Remote and WA/NT</td><td>{{TRANSIT_REMOTE}}</td><td>{{COST_REMOTE}}</td></tr>
+</table>
+<p>All shipping costs shown include GST and are displayed before you confirm your order. There are no
+additional charges added after checkout.</p>
+<p>Transit times are the carrier's estimates and start from dispatch, not from order. They are estimates,
+not guaranteed delivery dates. If you need delivery by a specific date, contact us before ordering and we
+will tell you honestly whether we can commit to it.</p>
+
+<h2>Free shipping</h2>
+<p>{{FREE_SHIPPING_THRESHOLD}} — the threshold is calculated on the GST-inclusive order value after any
+discount, and before it is applied you will see the actual shipping cost at checkout.</p>
+
+<h2>Tracking</h2>
+<p>We email a tracking number when your order is dispatched. If it has not arrived within
+{{TRACKING_GRACE}} of the estimated window, contact {{CONTACT_EMAIL}} and we will chase the carrier.</p>
+
+<h2>If delivery goes wrong</h2>
+<ul>
+  <li><strong>Lost in transit.</strong> We will replace or refund at your election. We deal with the
+      carrier, not you.</li>
+  <li><strong>Damaged in transit.</strong> Tell us within {{TRANSIT_DAYS}} days. Keep the packaging.
+      Replacement or refund at your election.</li>
+  <li><strong>Significantly late.</strong> Where delivery takes materially longer than the timeframe we
+      gave you, that may be a failure of the consumer guarantee to supply within a reasonable time. Your
+      rights are set out in <a href="returns-and-refunds.html">returns and refunds</a>.</li>
+  <li><strong>Wrong address supplied.</strong> If the address you gave us is wrong and the parcel is
+      returned, we will resend it once you pay the reshipping cost, or refund the goods less the original
+      shipping.</li>
+</ul>
+
+<h2>Incorrect or incomplete orders</h2>
+<p>If we send the wrong item or miss part of your order, tell us at {{CONTACT_EMAIL}} and we will correct
+it at our cost, including return postage. This is our error, not yours, and you should never be out of
+pocket for it.</p>
+
+<p class="lgl-foot">{{ENTITY_NAME}} · ABN {{ABN}} · {{REGISTERED_ADDRESS}} · {{CONTACT_EMAIL}}</p>
+</main>
+<script src="../compliance/compliance-layer.js"></script>
+<script src="../compliance/claim-guard.js"></script>
